@@ -1,8 +1,9 @@
 import os
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, Markup
 from xai_sdk import Client
 from xai_sdk.chat import user, system
 from dotenv import load_dotenv
+import markdown  # For rendering Markdown to HTML
 
 load_dotenv()
 
@@ -81,6 +82,43 @@ HTML_TEMPLATE = """
             margin-top: 20px; 
             border-left: 4px solid #1589f0; 
         }
+        .response h3 { 
+            color: #1589f0; 
+            margin-top: 0; 
+        }
+        .response h1, .response h2, .response h3, .response h4 { 
+            color: #1589f0; 
+        }
+        .response p { 
+            margin-bottom: 10px; 
+        }
+        .response ul, .response ol { 
+            margin: 10px 0; 
+            padding-left: 20px; 
+        }
+        .response li { 
+            margin-bottom: 5px; 
+        }
+        .response strong { 
+            font-weight: bold; 
+            color: #333; 
+        }
+        .response em { 
+            font-style: italic; 
+        }
+        .response code { 
+            background: #e8f4fd; 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+            font-family: monospace; 
+        }
+        .response pre { 
+            background: #e8f4fd; 
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-family: monospace; 
+        }
         .error { 
             color: #c23934; 
             background: #ef6966; 
@@ -106,7 +144,7 @@ HTML_TEMPLATE = """
         {% if response %}
         <div class="response">
             <h3>Grok 4 Fast Response:</h3>
-            <p>{{ response }}</p>
+            {{ response | safe }}
         </div>
         {% endif %}
         {% if error %}
@@ -139,14 +177,18 @@ def index():
 
                 # Build chat with Grok-4-fast-reasoning (text-only, fast)
                 chat = client.chat.create(model="grok-4-fast-reasoning")
-                chat.append(system("You are Grok, a highly intelligent, helpful AI assistant."))
+                chat.append(system("You are Grok, a highly intelligent, helpful AI assistant. Respond using Markdown formatting for better readability: use **bold** for emphasis, *italics* for subtle highlights, bullet points or numbered lists for enumerations, and code blocks for any code snippets."))
                 
                 full_prompt = prompt
                 if file_content:
                     full_prompt = f"Context from file: {file_content}\n\n{full_prompt}"
                 
                 chat.append(user(full_prompt))
-                response = chat.sample().content
+                raw_response = chat.sample().content
+                
+                # Convert Markdown to HTML
+                response_html = markdown.markdown(raw_response, extensions=['fenced_code', 'tables'])
+                response = Markup(response_html)
             except Exception as e:
                 error = f"Chat error: {str(e)}"
     
