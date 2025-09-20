@@ -1,5 +1,6 @@
 import os
-from flask import Flask, request, render_template_string, Markup
+from flask import Flask, request, render_template_string
+from markupsafe import Markup  # Fixed: Import from markupsafe for Flask 3.0+
 from xai_sdk import Client
 from xai_sdk.chat import user, system
 from dotenv import load_dotenv
